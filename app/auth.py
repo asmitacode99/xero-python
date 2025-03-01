@@ -20,6 +20,7 @@ def login():
     )
     return RedirectResponse(url=auth_url)
 
+    
 @router.get("/callback")
 async def callback(request: Request):
     """Handle the callback from Xero after user authorization."""
@@ -39,16 +40,30 @@ async def callback(request: Request):
             },
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
-    
+
     token_data = response.json()
+    
     if "access_token" not in token_data:
         return {"error": "Failed to retrieve access token", "details": token_data}
     
-    # Save the tokens
+    # Get Tenant ID from Xero API
+    async with httpx.AsyncClient() as client:
+        tenant_response = await client.get(
+            "https://api.xero.com/connections",
+            headers={"Authorization": f"Bearer {token_data['access_token']}"},
+        )
+    
+    tenant_data = tenant_response.json()
+    
+    if not tenant_data:
+        return {"error": "Failed to retrieve tenant ID", "details": tenant_data}
+    
+    # Save the tokens and tenant ID
     TOKEN_STORAGE["access_token"] = token_data["access_token"]
     TOKEN_STORAGE["refresh_token"] = token_data["refresh_token"]
     TOKEN_STORAGE["expires_in"] = token_data["expires_in"]
-    
+    TOKEN_STORAGE["xero_tenant_id"] = tenant_data[0]["tenantId"]  # Store tenant ID
+
     return {"message": "Authentication successful. You can now access protected endpoints."}
 
 def get_access_token():

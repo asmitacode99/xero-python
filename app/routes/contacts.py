@@ -7,16 +7,32 @@ from app.auth import get_access_token
 
 router = APIRouter()
 
-@router.get("/contacts", response_model=list[ContactResponse])
-def list_contacts(accounting_api=Depends(get_xero_accounting_api)):
+def verify_access_token():
+    """Helper function to check for valid access token."""
     access_token = get_access_token()
     if not access_token:
         raise HTTPException(status_code=401, detail="Unauthorized. Please login at /auth/login")
-    return get_contacts(accounting_api)
+    return access_token
+
+@router.get("/contacts", response_model=list[ContactResponse])
+def list_contacts(accounting_api=Depends(get_xero_accounting_api)):
+    """Fetch and list all contacts from Xero."""
+    verify_access_token()  # Ensure the user is authorized
+    try:
+        return get_contacts(accounting_api)
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching contacts: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 @router.post("/contacts", response_model=ContactResponse)
 def add_contact(contact: ContactCreate, accounting_api=Depends(get_xero_accounting_api)):
-    access_token = get_access_token()
-    if not access_token:
-        raise HTTPException(status_code=401, detail="Unauthorized. Please login at /auth/login")
-    return create_contact(accounting_api, contact)
+    """Add a new contact to Xero."""
+    verify_access_token()  # Ensure the user is authorized
+    try:
+        return create_contact(accounting_api, contact)
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=f"Error creating contact: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+ 

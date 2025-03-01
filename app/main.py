@@ -6,7 +6,7 @@ from app.auth import router as auth_router
 app = FastAPI(title="FastAPI Xero Integration")
 
 # Include the authentication endpoints under /auth
-app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+app.include_router(auth_router, prefix="", tags=["Authentication"])
 
 # Include Xero contact endpoints under /api
 app.include_router(contacts.router, prefix="/api", tags=["Xero Contacts"])
